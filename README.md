@@ -18,3 +18,6 @@ Holy Closets
 | `/pvp status` | Show status of all modules |
 
 ### For 1.21.11
+
+
+Projectiles Trajectory is from https://github.com/maDU59/ProjectilesTrajectoryPreview/tree/main
