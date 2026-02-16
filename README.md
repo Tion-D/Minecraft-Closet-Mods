@@ -16,3 +16,5 @@ Holy Closets
 | `/pvp friend list` | List friends |
 | `/pvp friend clear` | Clear all friends |
 | `/pvp status` | Show status of all modules |
+
+# For 1.21.11
