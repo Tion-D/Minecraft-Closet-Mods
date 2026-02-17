@@ -42,6 +42,26 @@ public class PvPConfig {
     // ===== Trajectory =====
     public boolean trajectoryEnabled = true;
 
+    // ===== Auto Totem =====
+    public boolean autoTotemEnabled = true;
+    public String autoTotemMode = "offhand"; // "offhand", "hotbar", "both"
+    public int autoTotemHotbarSlot = 8;
+    public double autoTotemHealthThreshold = 7.0;
+    public int autoTotemDelay = 2;
+    public boolean autoTotemElytra = true;
+    public boolean autoTotemFall = true;
+
+    // ===== No Render =====
+    public boolean noRenderEnabled = true;
+    public boolean noBlindness = true;
+    public boolean noDarkness = true;
+    public boolean noNausea = true;
+    public boolean noFireOverlay = true;
+    public boolean noLiquidOverlay = false;
+    public boolean noVignette = false;
+    public boolean noScoreboard = false;
+    public boolean noBossBar = false;
+
     // ===== Friends =====
     public List<String> friends = new ArrayList<>();
 
@@ -75,7 +95,6 @@ public class PvPConfig {
                 PvPConfig config = GSON.fromJson(reader, PvPConfig.class);
                 if (config != null) {
                     config.criticalsEnabled = false;
-                    config.hitSelectEnabled = true;
                     return config;
                 }
             } catch (IOException e) {

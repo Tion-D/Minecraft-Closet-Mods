@@ -6,6 +6,8 @@ import com.pvpmod.modules.CriticalsModule;
 import com.pvpmod.modules.HitSelectModule;
 import com.pvpmod.modules.ShieldDisablerModule;
 import com.pvpmod.modules.trajectory.TrajectoryModule;
+import com.pvpmod.modules.AutoTotemModule;
+import com.pvpmod.modules.NoRenderModule;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
@@ -14,10 +16,13 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallba
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.minecraft.network.protocol.game.ClientboundEntityEventPacket;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.network.chat.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 public class PvPModClient implements ClientModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger("pvp-mod");
@@ -27,6 +32,8 @@ public class PvPModClient implements ClientModInitializer {
     private final ShieldDisablerModule shieldDisabler = new ShieldDisablerModule();
     private final HitSelectModule hitSelect = new HitSelectModule();
     private final TrajectoryModule trajectory = new TrajectoryModule();
+    private final AutoTotemModule autoTotem = new AutoTotemModule();
+    private final NoRenderModule noRender = new NoRenderModule();
 
     @Override
     public void onInitializeClient() {
@@ -109,7 +116,50 @@ public class PvPModClient implements ClientModInitializer {
                         ));
                         return 1;
                     }))
-
+                .then(literal("totem")
+                    .executes(ctx -> {
+                        PvPConfig config = PvPConfig.getInstance();
+                        config.autoTotemEnabled = !config.autoTotemEnabled;
+                        config.save();
+                        ctx.getSource().sendFeedback(Component.literal(
+                            "Auto Totem: " + (config.autoTotemEnabled ? "§aON" : "§cOFF")
+                        ));
+                        return 1;
+                    })
+                    .then(literal("offhand")
+                        .executes(ctx -> {
+                            PvPConfig config = PvPConfig.getInstance();
+                            config.autoTotemMode = "offhand";
+                            config.save();
+                            ctx.getSource().sendFeedback(Component.literal("§aTotem mode: Offhand"));
+                            return 1;
+                        }))
+                    .then(literal("hotbar")
+                        .executes(ctx -> {
+                            PvPConfig config = PvPConfig.getInstance();
+                            config.autoTotemMode = "hotbar";
+                            config.save();
+                            ctx.getSource().sendFeedback(Component.literal("§aTotem mode: Hotbar"));
+                            return 1;
+                        }))
+                    .then(literal("both")
+                        .executes(ctx -> {
+                            PvPConfig config = PvPConfig.getInstance();
+                            config.autoTotemMode = "both";
+                            config.save();
+                            ctx.getSource().sendFeedback(Component.literal("§aTotem mode: Both (double totem)"));
+                            return 1;
+                        })))
+                .then(literal("render")
+                    .executes(ctx -> {
+                        PvPConfig config = PvPConfig.getInstance();
+                        config.noRenderEnabled = !config.noRenderEnabled;
+                        config.save();
+                        ctx.getSource().sendFeedback(Component.literal(
+                            "No Render: " + (config.noRenderEnabled ? "§aON" : "§cOFF")
+                        ));
+                        return 1;
+                    }))
                 .then(literal("friend")
                     .then(literal("add")
                         .then(argument("name", StringArgumentType.word())
@@ -164,6 +214,8 @@ public class PvPModClient implements ClientModInitializer {
                             "§7Shield Disabler: " + (config.shieldDisablerEnabled ? "§aON" : "§cOFF") + "\n" +
                             "§7Hit Select: " + (config.hitSelectEnabled ? "§aON" : "§cOFF") + "\n" +
                             "§7Trajectory: " + (config.trajectoryEnabled ? "§aON" : "§cOFF") + "\n" +
+                            "§7Auto Totem: " + (config.autoTotemEnabled ? "§aON" : "§cOFF") + " §7(" + config.autoTotemMode + ")\n" +
+                            "§7No Render: " + (config.noRenderEnabled ? "§aON" : "§cOFF") + "\n" +
                             "§7Friends: §f" + config.friends.size()
                         ));
                         return 1;
@@ -173,6 +225,10 @@ public class PvPModClient implements ClientModInitializer {
     }
 
     private void registerEvents() {
+        ClientPlayConnectionEvents.INIT.register((handler, client) -> {
+
+        });
+
         ClientTickEvents.START_CLIENT_TICK.register(client -> {
             hitSelect.onTickStart(client);
         });
@@ -181,6 +237,8 @@ public class PvPModClient implements ClientModInitializer {
             aimAssist.onTick(client);
             shieldDisabler.onTick(client);
             criticals.onTick(client);
+            autoTotem.onTick(client);
+            noRender.onTick(client);
         });
 
         HudRenderCallback.EVENT.register((graphics, tickDelta) -> {

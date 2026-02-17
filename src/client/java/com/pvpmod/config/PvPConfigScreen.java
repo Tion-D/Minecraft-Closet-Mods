@@ -12,7 +12,7 @@ public class PvPConfigScreen extends Screen {
     private final Screen parent;
     private final PvPConfig config;
     private int page = 0;
-    private static final String[] PAGES = {"Aim", "Crits", "Shield", "HitSel", "Traj"};
+    private static final String[] PAGES = {"Aim", "Crits", "Shield", "HitSel", "Traj", "Totem", "Render"};
 
     public PvPConfigScreen(Screen parent) {
         super(Component.literal("PvP Mod Settings"));
@@ -45,6 +45,8 @@ public class PvPConfigScreen extends Screen {
             case 2 -> initShieldDisabler(centerX, y, buttonWidth);
             case 3 -> initHitSelect(centerX, y, buttonWidth);
             case 4 -> initTrajectory(centerX, y, buttonWidth);
+            case 5 -> initAutoTotem(centerX, y, buttonWidth);
+            case 6 -> initNoRender(centerX, y, buttonWidth);
         }
     }
 
@@ -125,19 +127,88 @@ public class PvPConfigScreen extends Screen {
         addDoneButton(centerX, y);
     }
 
-    private void addToggle(int centerX, int y, int w, String label, boolean current, java.util.function.Consumer<Boolean> setter) {
+    private void initAutoTotem(int centerX, int y, int w) {
         addRenderableWidget(Button.builder(
-                Component.literal(label + ": " + (current ? "ON" : "OFF")),
+                Component.literal("Enabled: " + (config.autoTotemEnabled ? "ON" : "OFF")),
                 btn -> {
-                    boolean newVal = !label.equals("Enabled") ? !current : !current;
-                    boolean actualCurrent;
-                    if (label.equals("Enabled") && this.page == 0) actualCurrent = config.aimAssistEnabled;
-                    else if (label.equals("Vertical Assist")) actualCurrent = config.aimVerticalAssist;
-                    else if (label.equals("Enabled") && this.page == 2) actualCurrent = config.shieldDisablerEnabled;
-                    else if (label.equals("Enabled") && this.page == 4) actualCurrent = config.trajectoryEnabled;
-                    else actualCurrent = current;
-                    setter.accept(!actualCurrent);
-                    init();
+                    config.autoTotemEnabled = !config.autoTotemEnabled;
+                    config.save();
+                    btn.setMessage(Component.literal("Enabled: " + (config.autoTotemEnabled ? "ON" : "OFF")));
+                })
+                .bounds(centerX - w / 2, y, w, 20)
+                .tooltip(Tooltip.create(Component.literal("Always off on startup")))
+                .build());
+        y += 24;
+
+        addRenderableWidget(Button.builder(
+                Component.literal("Mode: " + config.autoTotemMode.toUpperCase()),
+                btn -> {
+                    if (config.autoTotemMode.equals("offhand")) config.autoTotemMode = "hotbar";
+                    else if (config.autoTotemMode.equals("hotbar")) config.autoTotemMode = "both";
+                    else config.autoTotemMode = "offhand";
+                    config.save();
+                    btn.setMessage(Component.literal("Mode: " + config.autoTotemMode.toUpperCase()));
+                })
+                .bounds(centerX - w / 2, y, w, 20)
+                .tooltip(Tooltip.create(Component.literal(
+                    "Offhand = restock offhand when totem pops\n" +
+                    "Hotbar = swap to totem slot when low HP\n" +
+                    "Both = double totem (cpvp)"
+                )))
+                .build());
+        y += 24;
+
+        addSlider(centerX, y, w, "Hotbar Slot", config.autoTotemHotbarSlot + 1, 1.0, 9.0, 0,
+                v -> { config.autoTotemHotbarSlot = (int) v.doubleValue() - 1; config.save(); });
+        y += 24;
+
+        addSlider(centerX, y, w, "Health Threshold", config.autoTotemHealthThreshold, 1.0, 20.0, 1,
+                v -> { config.autoTotemHealthThreshold = v; config.save(); });
+        y += 24;
+
+        addToggle(centerX, y, w, "Elytra Protection", config.autoTotemElytra, v -> { config.autoTotemElytra = v; config.save(); });
+        y += 24;
+
+        addToggle(centerX, y, w, "Fall Protection", config.autoTotemFall, v -> { config.autoTotemFall = v; config.save(); });
+        y += 24;
+
+        addSlider(centerX, y, w, "Delay (ticks)", config.autoTotemDelay, 0.0, 5.0, 0,
+                v -> { config.autoTotemDelay = (int) v.doubleValue(); config.save(); });
+        y += 30;
+
+        addDoneButton(centerX, y);
+    }
+
+    private void initNoRender(int centerX, int y, int w) {
+        addToggle(centerX, y, w, "Enabled", config.noRenderEnabled, v -> { config.noRenderEnabled = v; config.save(); });
+        y += 24;
+        addToggle(centerX, y, w, "No Blindness", config.noBlindness, v -> { config.noBlindness = v; config.save(); });
+        y += 24;
+        addToggle(centerX, y, w, "No Darkness", config.noDarkness, v -> { config.noDarkness = v; config.save(); });
+        y += 24;
+        addToggle(centerX, y, w, "No Nausea", config.noNausea, v -> { config.noNausea = v; config.save(); });
+        y += 24;
+        addToggle(centerX, y, w, "No Fire Overlay", config.noFireOverlay, v -> { config.noFireOverlay = v; config.save(); });
+        y += 24;
+        addToggle(centerX, y, w, "No Water Overlay", config.noLiquidOverlay, v -> { config.noLiquidOverlay = v; config.save(); });
+        y += 24;
+        addToggle(centerX, y, w, "No Vignette", config.noVignette, v -> { config.noVignette = v; config.save(); });
+        y += 24;
+        addToggle(centerX, y, w, "No Scoreboard", config.noScoreboard, v -> { config.noScoreboard = v; config.save(); });
+        y += 24;
+        addToggle(centerX, y, w, "No Boss Bar", config.noBossBar, v -> { config.noBossBar = v; config.save(); });
+        y += 30;
+        addDoneButton(centerX, y);
+    }
+
+    private void addToggle(int centerX, int y, int w, String label, boolean current, java.util.function.Consumer<Boolean> setter) {
+        final boolean[] state = {current};
+        addRenderableWidget(Button.builder(
+                Component.literal(label + ": " + (state[0] ? "ON" : "OFF")),
+                btn -> {
+                    state[0] = !state[0];
+                    setter.accept(state[0]);
+                    btn.setMessage(Component.literal(label + ": " + (state[0] ? "ON" : "OFF")));
                 })
                 .bounds(centerX - w / 2, y, w, 20)
                 .build());

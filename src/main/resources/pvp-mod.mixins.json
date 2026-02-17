@@ -1,0 +1,13 @@
+{
+    "required": true,
+    "package": "com.pvpmod.mixin",
+    "compatibilityLevel": "JAVA_21",
+    "client": [
+        "GuiMixin",
+        "ScreenEffectRendererMixin",
+        "BossHealthOverlayMixin"
+    ],
+    "injectors": {
+        "defaultRequire": 1
+    }
+}
