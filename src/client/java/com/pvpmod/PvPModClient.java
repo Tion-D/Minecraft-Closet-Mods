@@ -8,6 +8,7 @@ import com.pvpmod.modules.ShieldDisablerModule;
 import com.pvpmod.modules.trajectory.TrajectoryModule;
 import com.pvpmod.modules.AutoTotemModule;
 import com.pvpmod.modules.NoRenderModule;
+import com.pvpmod.modules.PlayerESPModule;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
@@ -22,7 +23,14 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.network.chat.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.minecraft.client.KeyMapping;
+import com.mojang.blaze3d.platform.InputConstants;
+import org.lwjgl.glfw.GLFW;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.client.renderer.MultiBufferSource;
+import com.mojang.blaze3d.vertex.PoseStack;
 
 public class PvPModClient implements ClientModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger("pvp-mod");
@@ -34,6 +42,12 @@ public class PvPModClient implements ClientModInitializer {
     private final TrajectoryModule trajectory = new TrajectoryModule();
     private final AutoTotemModule autoTotem = new AutoTotemModule();
     private final NoRenderModule noRender = new NoRenderModule();
+    private final PlayerESPModule playerESP = new PlayerESPModule();
+
+    private static final String KEY_CATEGORY = "key.categories.pvpmod";
+    private static final String KEY_AIM_TOGGLE = "key.pvpmod.aim_toggle";
+    private boolean aimKeyHeld = false;
+    private boolean aimKeyWasPressed = false;
 
     @Override
     public void onInitializeClient() {
@@ -160,6 +174,16 @@ public class PvPModClient implements ClientModInitializer {
                         ));
                         return 1;
                     }))
+                .then(literal("esp")
+                    .executes(ctx -> {
+                        PvPConfig config = PvPConfig.getInstance();
+                        config.espEnabled = !config.espEnabled;
+                        config.save();
+                        ctx.getSource().sendFeedback(Component.literal(
+                            "ESP: " + (config.espEnabled ? "§aON" : "§cOFF")
+                        ));
+                        return 1;
+                    }))
                 .then(literal("friend")
                     .then(literal("add")
                         .then(argument("name", StringArgumentType.word())
@@ -233,7 +257,22 @@ public class PvPModClient implements ClientModInitializer {
             hitSelect.onTickStart(client);
         });
 
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+       ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (client.screen == null && client.player != null) {
+                int key = PvPConfig.getInstance().aimToggleKeyCode;
+                boolean pressed = InputConstants.isKeyDown(client.getWindow(), key);
+                if (pressed && !aimKeyWasPressed) {
+                    PvPConfig config = PvPConfig.getInstance();
+                    config.aimAssistEnabled = !config.aimAssistEnabled;
+                    config.save();
+                    client.player.displayClientMessage(
+                        Component.literal("Aim Assist: " + (config.aimAssistEnabled ? "§aON" : "§cOFF")),
+                        true
+                    );
+                }
+                aimKeyWasPressed = pressed;
+            }
+
             aimAssist.onTick(client);
             shieldDisabler.onTick(client);
             criticals.onTick(client);
@@ -251,6 +290,7 @@ public class PvPModClient implements ClientModInitializer {
 
         WorldRenderEvents.AFTER_ENTITIES.register(context -> {
             trajectory.onWorldRender(context);
+            playerESP.onWorldRender(context);
         });
     }
 }

@@ -43,21 +43,18 @@ public class AutoTotemModule {
         LocalPlayer player = client.player;
         boolean offhandIsTotem = isTotem(player.getOffhandItem());
 
-        // === Detect totem pop only when idle (not mid-operation) ===
         if (state == State.IDLE) {
             if (lastOffhandWasTotem && !offhandIsTotem && player.getOffhandItem().isEmpty()) {
                 totemJustPopped = true;
             }
         }
 
-        // === Handle ongoing multi-tick operations ===
         if (state != State.IDLE) {
             handleState(client, player, config);
             lastOffhandWasTotem = isTotem(player.getOffhandItem());
             return;
         }
 
-        // === Cooldown between operations ===
         if (tickDelay > 0) {
             tickDelay--;
             lastOffhandWasTotem = offhandIsTotem;
@@ -66,7 +63,6 @@ public class AutoTotemModule {
 
         String mode = config.autoTotemMode;
 
-        // === Hotbar swap to mainhand when in danger ===
         if (mode.equals("hotbar") || mode.equals("both")) {
             if (shouldForceTotem(player, config)) {
                 if (!isTotem(player.getMainHandItem())) {
@@ -82,7 +78,6 @@ public class AutoTotemModule {
             }
         }
 
-        // === Offhand restock ===
         if (mode.equals("offhand") || mode.equals("both")) {
             if (!offhandIsTotem) {
                 boolean shouldRestock = false;
@@ -91,13 +86,12 @@ public class AutoTotemModule {
                     shouldRestock = true;
                 } else {
                     if (totemJustPopped) shouldRestock = true;
-                    if (!shouldRestock && player.getOffhandItem().isEmpty() && shouldForceTotem(player, config)) {
+                    if (!shouldRestock && shouldForceTotem(player, config)) {
                         shouldRestock = true;
                     }
                 }
 
                 if (shouldRestock) {
-                    // Priority 1: Hotbar totem → offhand (no inventory needed)
                     int hotbarSlot = findTotemInHotbarForOffhand(player, config);
                     if (hotbarSlot != -1) {
                         beginHotbarToOffhand(player, hotbarSlot);
@@ -106,7 +100,6 @@ public class AutoTotemModule {
                         return;
                     }
 
-                    // Priority 2: Main inventory → offhand (needs inventory open)
                     int invSlot = findTotemInMainInventory(player);
                     if (invSlot != -1 && client.screen == null) {
                         beginInventoryToOffhand(client, player, invSlot);
@@ -118,7 +111,6 @@ public class AutoTotemModule {
             }
         }
 
-        // === Restock preferred hotbar slot in "both" mode ===
         if (mode.equals("both")) {
             int prefSlot = config.autoTotemHotbarSlot;
             if (!isTotem(player.getInventory().getItem(prefSlot))) {
@@ -136,10 +128,6 @@ public class AutoTotemModule {
         }
         lastOffhandWasTotem = offhandIsTotem;
     }
-
-    // ==============================================
-    // State machine
-    // ==============================================
 
     private void handleState(Minecraft client, LocalPlayer player, PvPConfig config) {
         switch (state) {
@@ -211,15 +199,10 @@ public class AutoTotemModule {
         }
     }
 
-    // ==============================================
-    // Begin operations
-    // ==============================================
-
     private void beginHotbarToOffhand(LocalPlayer player, int hotbarSlot) {
         originalSlot = getSlot(player);
 
         if (originalSlot == hotbarSlot) {
-            // Already holding totem, just swap to offhand immediately
             player.connection.send(new ServerboundPlayerActionPacket(
                 ServerboundPlayerActionPacket.Action.SWAP_ITEM_WITH_OFFHAND,
                 BlockPos.ZERO, Direction.DOWN
@@ -247,10 +230,6 @@ public class AutoTotemModule {
         state = State.RESTOCK_OPENED;
     }
 
-    // ==============================================
-    // Danger detection
-    // ==============================================
-
     private boolean shouldForceTotem(LocalPlayer player, PvPConfig config) {
         float effectiveHealth = player.getHealth() + player.getAbsorptionAmount();
 
@@ -265,10 +244,6 @@ public class AutoTotemModule {
 
         return false;
     }
-
-    // ==============================================
-    // Reset
-    // ==============================================
 
     private void resetAll(Minecraft client) {
         if (state == State.INV_OPENED || state == State.INV_CLICKED
@@ -290,10 +265,6 @@ public class AutoTotemModule {
         totemJustPopped = false;
         lastOffhandWasTotem = false;
     }
-
-    // ==============================================
-    // Inventory helpers
-    // ==============================================
 
     private boolean isTotem(ItemStack stack) {
         return !stack.isEmpty() && stack.is(Items.TOTEM_OF_UNDYING);

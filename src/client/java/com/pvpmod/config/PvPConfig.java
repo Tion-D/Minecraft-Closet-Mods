@@ -18,7 +18,7 @@ public class PvPConfig {
     private static PvPConfig INSTANCE = null;
 
     // ===== Aim Assist =====
-    public boolean aimAssistEnabled = true;
+    public boolean aimAssistEnabled = false;
     public double aimRadius = 3.2;
     public double aimFov = 90.0;
     public double aimSnapAngle = 25.0;
@@ -36,7 +36,7 @@ public class PvPConfig {
     public int shieldSwapBackDelay = 2;
 
     // ===== Hit Select =====
-    public boolean hitSelectEnabled = true;
+    public boolean hitSelectEnabled = false;
     public double hitSelectCombatRange = 6.0;
 
     // ===== Trajectory =====
@@ -61,6 +61,21 @@ public class PvPConfig {
     public boolean noVignette = false;
     public boolean noScoreboard = false;
     public boolean noBossBar = false;
+
+    // ===== ESP =====
+    public boolean espEnabled = false;
+    public boolean espIgnoreSelf = true;
+    public float espEnemyR = 1.0f;
+    public float espEnemyG = 0.0f;
+    public float espEnemyB = 0.0f;
+    public float espFriendR = 0.0f;
+    public float espFriendG = 1.0f;
+    public float espFriendB = 0.0f;
+    public float espAlpha = 0.8f;
+    public boolean espNametags = true;
+
+    // ===== Keybinds =====
+    public int aimToggleKeyCode = 88; // KEY_X
 
     // ===== Friends =====
     public List<String> friends = new ArrayList<>();

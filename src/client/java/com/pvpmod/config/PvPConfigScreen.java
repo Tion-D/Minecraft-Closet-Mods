@@ -7,12 +7,16 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
+import com.mojang.blaze3d.platform.InputConstants;
+import org.lwjgl.glfw.GLFW;
 
 public class PvPConfigScreen extends Screen {
     private final Screen parent;
     private final PvPConfig config;
     private int page = 0;
-    private static final String[] PAGES = {"Aim", "Crits", "Shield", "HitSel", "Traj", "Totem", "Render"};
+    private boolean listeningForKey = false;
+    private Button keyButton = null;
+    private static final String[] PAGES = {"Aim", "Crits", "Shield", "HitSel", "Traj", "Totem", "Render", "ESP"};
 
     public PvPConfigScreen(Screen parent) {
         super(Component.literal("PvP Mod Settings"));
@@ -47,6 +51,7 @@ public class PvPConfigScreen extends Screen {
             case 4 -> initTrajectory(centerX, y, buttonWidth);
             case 5 -> initAutoTotem(centerX, y, buttonWidth);
             case 6 -> initNoRender(centerX, y, buttonWidth);
+            case 7 -> initESP(centerX, y, buttonWidth);
         }
     }
 
@@ -62,6 +67,15 @@ public class PvPConfigScreen extends Screen {
         addSlider(centerX, y, w, "FOV", config.aimFov, 10.0, 180.0, 0, v -> { config.aimFov = v; config.save(); });
         y += 24;
         addSlider(centerX, y, w, "Snap Angle", config.aimSnapAngle, 10.0, 180.0, 0, v -> { config.aimSnapAngle = v; config.save(); });
+        y += 24;
+        keyButton = addRenderableWidget(Button.builder(
+                Component.literal("Toggle Key: " + getKeyName(config.aimToggleKeyCode)),
+                btn -> {
+                    listeningForKey = true;
+                    btn.setMessage(Component.literal("Toggle Key: §e> Press a key <"));
+                })
+                .bounds(centerX - w / 2, y, w, 20)
+                .build());
         y += 24;
         addToggle(centerX, y, w, "Vertical Assist", config.aimVerticalAssist, v -> { config.aimVerticalAssist = v; config.save(); });
         y += 30;
@@ -201,6 +215,39 @@ public class PvPConfigScreen extends Screen {
         addDoneButton(centerX, y);
     }
 
+    private void initESP(int centerX, int y, int w) {
+        addToggle(centerX, y, w, "ESP Enabled", config.espEnabled, v -> { config.espEnabled = v; config.save(); });
+        y += 24;
+        addToggle(centerX, y, w, "Ignore Self", config.espIgnoreSelf, v -> { config.espIgnoreSelf = v; config.save(); });
+        y += 24;
+        addToggle(centerX, y, w, "Nametags", config.espNametags, v -> { config.espNametags = v; config.save(); });
+        y += 30;
+
+        addRenderableWidget(Button.builder(Component.literal("§c--- Enemy Color ---"), btn -> {})
+                .bounds(centerX - w / 2, y, w, 14).build()).active = false;
+        y += 18;
+        addSlider(centerX, y, w, "§cRed", config.espEnemyR, 0.0, 1.0, 2, v -> { config.espEnemyR = v.floatValue(); config.save(); });
+        y += 24;
+        addSlider(centerX, y, w, "§aGreen", config.espEnemyG, 0.0, 1.0, 2, v -> { config.espEnemyG = v.floatValue(); config.save(); });
+        y += 24;
+        addSlider(centerX, y, w, "§9Blue", config.espEnemyB, 0.0, 1.0, 2, v -> { config.espEnemyB = v.floatValue(); config.save(); });
+        y += 30;
+
+        addRenderableWidget(Button.builder(Component.literal("§a--- Friend Color ---"), btn -> {})
+                .bounds(centerX - w / 2, y, w, 14).build()).active = false;
+        y += 18;
+        addSlider(centerX, y, w, "§cRed", config.espFriendR, 0.0, 1.0, 2, v -> { config.espFriendR = v.floatValue(); config.save(); });
+        y += 24;
+        addSlider(centerX, y, w, "§aGreen", config.espFriendG, 0.0, 1.0, 2, v -> { config.espFriendG = v.floatValue(); config.save(); });
+        y += 24;
+        addSlider(centerX, y, w, "§9Blue", config.espFriendB, 0.0, 1.0, 2, v -> { config.espFriendB = v.floatValue(); config.save(); });
+        y += 30;
+
+        addSlider(centerX, y, w, "Opacity", config.espAlpha, 0.1, 1.0, 2, v -> { config.espAlpha = v.floatValue(); config.save(); });
+        y += 30;
+        addDoneButton(centerX, y);
+    }
+
     private void addToggle(int centerX, int y, int w, String label, boolean current, java.util.function.Consumer<Boolean> setter) {
         final boolean[] state = {current};
         addRenderableWidget(Button.builder(
@@ -212,6 +259,12 @@ public class PvPConfigScreen extends Screen {
                 })
                 .bounds(centerX - w / 2, y, w, 20)
                 .build());
+    }
+
+    private String getKeyName(int keyCode) {
+        String name = GLFW.glfwGetKeyName(keyCode, 0);
+        if (name != null) return name.toUpperCase();
+        return "KEY_" + keyCode;
     }
 
     private void addSlider(int centerX, int y, int w, String label, double current, double min, double max, int decimals, java.util.function.Consumer<Double> setter) {
@@ -245,6 +298,21 @@ public class PvPConfigScreen extends Screen {
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
         super.render(graphics, mouseX, mouseY, delta);
         graphics.drawCenteredString(this.font, this.title, this.width / 2, 8, 0xFFFFFF);
+
+        if (listeningForKey) {
+            long window = GLFW.glfwGetCurrentContext();
+            for (int k = GLFW.GLFW_KEY_SPACE; k <= GLFW.GLFW_KEY_LAST; k++) {
+                if (GLFW.glfwGetKey(window, k) == GLFW.GLFW_PRESS) {
+                    listeningForKey = false;
+                    config.aimToggleKeyCode = k;
+                    config.save();
+                    if (keyButton != null) {
+                        keyButton.setMessage(Component.literal("Toggle Key: " + getKeyName(k)));
+                    }
+                    break;
+                }
+            }
+        }
     }
 
     @Override
