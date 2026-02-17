@@ -240,6 +240,7 @@ public class PvPModClient implements ClientModInitializer {
                             "§7Trajectory: " + (config.trajectoryEnabled ? "§aON" : "§cOFF") + "\n" +
                             "§7Auto Totem: " + (config.autoTotemEnabled ? "§aON" : "§cOFF") + " §7(" + config.autoTotemMode + ")\n" +
                             "§7No Render: " + (config.noRenderEnabled ? "§aON" : "§cOFF") + "\n" +
+                            "§7ESO: " + (config.espEnabled ? "§aON" : "§cOFF") + "\n" +
                             "§7Friends: §f" + config.friends.size()
                         ));
                         return 1;

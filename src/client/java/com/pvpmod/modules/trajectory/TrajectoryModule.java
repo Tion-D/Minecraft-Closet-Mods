@@ -57,7 +57,6 @@ public class TrajectoryModule {
             itemStack = player.getOffhandItem();
             handMultiplier = -handMultiplier;
             projectileInfoList = ProjectileInfo.getItemsInfo(itemStack, player, false);
-
             if (projectileInfoList.isEmpty()) return;
         }
 
@@ -148,64 +147,67 @@ public class TrajectoryModule {
         Entity entityImpact = null;
         boolean hasHit = false;
         List<Vec3> trajectoryPoints = new ArrayList<>();
+
         double drag = projectileInfo.drag;
         double gravity = projectileInfo.gravity;
-        Vec3 vel = projectileInfo.initialVelocity.add(player.getDeltaMovement());
+
+        Vec3 vel = projectileInfo.initialVelocity;
 
         for (int i = 0; i < 200; i++) {
             trajectoryPoints.add(pos);
 
-            for (int order : projectileInfo.order) {
-                if (order == 0) pos = pos.add(vel);
-                else if (order == 1) vel = vel.scale(drag);
-                else if (order == 2) vel = vel.subtract(0, gravity, 0);
-            }
+            pos = pos.add(vel);
 
-            AABB box = new AABB(prevPos, pos).inflate(1.0);
+            vel = vel.subtract(0, gravity, 0);
 
-            List<Entity> entities = client.level.getEntitiesOfClass(Entity.class, box,
-                    e -> !e.isSpectator() && e.isAlive()
-                            && !(e instanceof Projectile) && !(e instanceof ItemEntity)
-                            && !(e instanceof ExperienceOrb) && !(e instanceof EnderDragon)
-                            && !(e instanceof LocalPlayer));
+            vel = vel.scale(drag);
+
+            AABB searchBox = new AABB(prevPos, pos).inflate(1.0);
 
             Entity closest = null;
-            double closestDistance = 99999.0;
+            double closestDistSq = Double.MAX_VALUE;
             Vec3 entityHitPos = null;
 
             if (canHitEntities) {
+                List<Entity> entities = client.level.getEntitiesOfClass(Entity.class, searchBox,
+                        e -> !e.isSpectator() && e.isAlive()
+                                && !(e instanceof Projectile) && !(e instanceof ItemEntity)
+                                && !(e instanceof ExperienceOrb) && !(e instanceof EnderDragon)
+                                && !(e instanceof LocalPlayer));
+
                 for (Entity entity : entities) {
                     AABB entityBox = entity.getBoundingBox().inflate(entity.getPickRadius());
-                    Optional<Vec3> entityRaycastHit = entityBox.clip(prevPos, pos);
-
-                    if (entityRaycastHit.isPresent()) {
-                        double distance = prevPos.distanceToSqr(entityRaycastHit.get());
-                        if (distance < closestDistance) {
-                            entityHitPos = entityRaycastHit.get();
+                    Optional<Vec3> hit = entityBox.clip(prevPos, pos);
+                    if (hit.isPresent()) {
+                        double distSq = prevPos.distanceToSqr(hit.get());
+                        if (distSq < closestDistSq) {
+                            entityHitPos = hit.get();
                             closest = entity;
-                            closestDistance = distance;
+                            closestDistSq = distSq;
                         }
                     }
                 }
             }
 
-            HitResult hit;
+            HitResult blockHit;
             if (projectileInfo.hasWaterCollision) {
-                hit = player.level().clip(new ClipContext(prevPos, pos, ClipContext.Block.COLLIDER, ClipContext.Fluid.WATER, player));
+                blockHit = player.level().clip(new ClipContext(prevPos, pos, ClipContext.Block.COLLIDER, ClipContext.Fluid.WATER, player));
             } else {
-                hit = player.level().clip(new ClipContext(prevPos, pos, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
-                if (hit.getType() == HitResult.Type.MISS && player.level().clip(new ClipContext(prevPos, pos, ClipContext.Block.COLLIDER, ClipContext.Fluid.WATER, player)).getType() != HitResult.Type.MISS) {
+                blockHit = player.level().clip(new ClipContext(prevPos, pos, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
+
+                HitResult waterHit = player.level().clip(new ClipContext(prevPos, pos, ClipContext.Block.COLLIDER, ClipContext.Fluid.WATER, player));
+                if (blockHit.getType() == HitResult.Type.MISS && waterHit.getType() != HitResult.Type.MISS) {
                     drag = projectileInfo.waterDrag;
                     gravity = projectileInfo.underwaterGravity;
-                } else {
+                } else if (blockHit.getType() == HitResult.Type.MISS && waterHit.getType() == HitResult.Type.MISS) {
                     drag = projectileInfo.drag;
                     gravity = projectileInfo.gravity;
                 }
             }
 
-            if (hit.getType() != HitResult.Type.MISS && prevPos.distanceToSqr(hit.getLocation()) < closestDistance) {
-                impact = hit;
-                pos = hit.getLocation();
+            if (blockHit.getType() != HitResult.Type.MISS && prevPos.distanceToSqr(blockHit.getLocation()) < closestDistSq) {
+                impact = blockHit;
+                pos = blockHit.getLocation();
                 trajectoryPoints.add(pos);
                 hasHit = true;
                 break;
@@ -223,6 +225,7 @@ public class TrajectoryModule {
 
             prevPos = pos;
         }
+
         return new PreviewImpact(pos, impact, entityImpact, hasHit, trajectoryPoints);
     }
 }

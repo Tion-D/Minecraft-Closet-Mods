@@ -10,20 +10,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ArrowItem;
-import net.minecraft.world.item.BowItem;
-import net.minecraft.world.item.CrossbowItem;
-import net.minecraft.world.item.EggItem;
-import net.minecraft.world.item.EnderpearlItem;
-import net.minecraft.world.item.ExperienceBottleItem;
-import net.minecraft.world.item.FishingRodItem;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.SnowballItem;
-import net.minecraft.world.item.ThrowablePotionItem;
-import net.minecraft.world.item.TridentItem;
-import net.minecraft.world.item.WindChargeItem;
+import net.minecraft.world.item.*;
 import net.minecraft.world.item.component.ChargedProjectiles;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
@@ -40,25 +27,9 @@ public class ProjectileInfo {
     public final boolean hasWaterCollision;
     public final double waterDrag;
     public final double underwaterGravity;
-    public final List<Integer> order;
 
-    private static final List<Integer> ORDER_MDG = List.of(0, 1, 2);
-    private static final List<Integer> ORDER_GMD = List.of(2, 0, 1);
-    private static final List<Integer> ORDER_GDM = List.of(2, 1, 0);
-
-    public ProjectileInfo(double gravity, double drag, Vec3 initialVelocity, Vec3 offset, Vec3 position, boolean hasWaterCollision, double waterDrag, List<Integer> order) {
-        this.gravity = gravity;
-        this.drag = drag;
-        this.initialVelocity = initialVelocity;
-        this.offset = offset;
-        this.position = position;
-        this.hasWaterCollision = hasWaterCollision;
-        this.waterDrag = waterDrag;
-        this.underwaterGravity = gravity;
-        this.order = order;
-    }
-
-    public ProjectileInfo(double gravity, double drag, Vec3 initialVelocity, Vec3 offset, Vec3 position, boolean hasWaterCollision, double waterDrag, double underwaterGravity, List<Integer> order) {
+    public ProjectileInfo(double gravity, double drag, Vec3 initialVelocity, Vec3 offset, Vec3 position,
+                          boolean hasWaterCollision, double waterDrag, double underwaterGravity) {
         this.gravity = gravity;
         this.drag = drag;
         this.initialVelocity = initialVelocity;
@@ -67,144 +38,140 @@ public class ProjectileInfo {
         this.hasWaterCollision = hasWaterCollision;
         this.waterDrag = waterDrag;
         this.underwaterGravity = underwaterGravity;
-        this.order = order;
+    }
+
+    public ProjectileInfo(double gravity, double drag, Vec3 initialVelocity, Vec3 offset, Vec3 position,
+                          boolean hasWaterCollision, double waterDrag) {
+        this(gravity, drag, initialVelocity, offset, position, hasWaterCollision, waterDrag, gravity);
     }
 
     public static List<ProjectileInfo> getItemsInfo(ItemStack itemStack, Player player, boolean isMainHand) {
         float tickProgress = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false);
-
-        List<ProjectileInfo> projectileInfoList = new ArrayList<>();
-
-        double gravity = 0.05;
-        double drag = 0.99;
-        double waterDrag = 0.6;
-
+        List<ProjectileInfo> results = new ArrayList<>();
         Item item = itemStack.getItem();
 
-        Vec3 position = player.getEyePosition(tickProgress).add(new Vec3(0, -0.10000000149011612, 0));
+        Vec3 position = player.getEyePosition(tickProgress).add(0, -0.10000000149011612, 0);
+
+        Vec3 playerVel = player.getDeltaMovement();
+        Vec3 addedVel = new Vec3(playerVel.x, player.onGround() ? 0 : playerVel.y, playerVel.z);
 
         if (item instanceof BowItem) {
             int useTicks = player.getTicksUsingItem();
             float pull = BowItem.getPowerForTime(useTicks);
+            if (pull < 0.1f) return results;
 
-            Vec3 vel = player.getViewVector(tickProgress).scale(3.0 * pull);
+            Vec3 dir = dirFromRotation(player.getXRot(), player.getYRot(), 0);
+            Vec3 vel = dir.normalize().scale(pull * 3.0).add(addedVel);
             Vec3 offset = new Vec3(0.2, -0.06, 0.2);
 
-            if (pull >= 0.1) projectileInfoList.add(new ProjectileInfo(gravity, drag, vel, offset, position, false, waterDrag, ORDER_MDG));
+            results.add(new ProjectileInfo(0.05, 0.99, vel, offset, position, false, 0.6));
 
         } else if (item instanceof CrossbowItem) {
-            Vec3 vel = player.getViewVector(tickProgress).scale(3.15);
-            Vec3 offset = new Vec3(0, -0.06, 0.03);
+            if (!CrossbowItem.isCharged(itemStack)) return results;
 
-            ChargedProjectiles chargedProjectilesComponent = itemStack.get(DataComponents.CHARGED_PROJECTILES);
+            double gravity = 0.05;
+            double drag = 0.99;
+            double waterDrag = 0.6;
 
-            if (chargedProjectilesComponent != null) {
-                for (ItemStack projectile : chargedProjectilesComponent.getItems()) {
-                    if (projectile.is(Items.FIREWORK_ROCKET)) {
-                        vel = player.getViewVector(tickProgress).scale(1.6F);
-                        gravity = 0;
-                        waterDrag = drag;
+            ChargedProjectiles charged = itemStack.get(DataComponents.CHARGED_PROJECTILES);
+            boolean isFirework = false;
+            if (charged != null) {
+                for (ItemStack proj : charged.getItems()) {
+                    if (proj.is(Items.FIREWORK_ROCKET)) {
+                        isFirework = true;
+                        break;
                     }
                 }
             }
 
-            if (CrossbowItem.isCharged(itemStack)) {
-                projectileInfoList.add(new ProjectileInfo(gravity, drag, vel, offset, position, false, waterDrag, ORDER_MDG));
-                if (hasEnchantment(itemStack, Enchantments.MULTISHOT)) {
-                    float angleOffset = 10f;
-                    Vec3 vel1 = vel.yRot((float) Math.toRadians(angleOffset));
-                    Vec3 vel2 = vel.yRot((float) Math.toRadians(-angleOffset));
-                    projectileInfoList.add(new ProjectileInfo(gravity, drag, vel1, offset, position, false, waterDrag, ORDER_MDG));
-                    projectileInfoList.add(new ProjectileInfo(gravity, drag, vel2, offset, position, false, waterDrag, ORDER_MDG));
-                }
+            float speed = isFirework ? 1.6f : 3.15f;
+            if (isFirework) { gravity = 0; waterDrag = drag; }
+
+            Vec3 dir = dirFromRotation(player.getXRot(), player.getYRot(), 0);
+            Vec3 vel = dir.normalize().scale(speed).add(addedVel);
+            Vec3 offset = new Vec3(0, -0.06, 0.03);
+
+            results.add(new ProjectileInfo(gravity, drag, vel, offset, position, false, waterDrag));
+
+            if (hasEnchantment(itemStack, Enchantments.MULTISHOT) && !isFirework) {
+                Vec3 velL = dirFromRotation(player.getXRot(), player.getYRot() - 10, 0).normalize().scale(3.15).add(addedVel);
+                Vec3 velR = dirFromRotation(player.getXRot(), player.getYRot() + 10, 0).normalize().scale(3.15).add(addedVel);
+                results.add(new ProjectileInfo(gravity, drag, velL, offset, position, false, waterDrag));
+                results.add(new ProjectileInfo(gravity, drag, velR, offset, position, false, waterDrag));
             }
 
         } else if (item instanceof TridentItem) {
-            waterDrag = 0.99;
             int useTicks = player.getTicksUsingItem();
+            if (useTicks < TridentItem.THROW_THRESHOLD_TIME || hasEnchantment(itemStack, Enchantments.RIPTIDE))
+                return results;
 
-            Vec3 vel = player.getViewVector(tickProgress).scale(TridentItem.PROJECTILE_SHOOT_POWER);
+            Vec3 dir = dirFromRotation(player.getXRot(), player.getYRot(), 0);
+            Vec3 vel = dir.normalize().scale(TridentItem.PROJECTILE_SHOOT_POWER).add(addedVel);
             Vec3 offset = new Vec3(0.2, 0.1, 0.2);
 
-            if (useTicks >= TridentItem.THROW_THRESHOLD_TIME && !hasEnchantment(itemStack, Enchantments.RIPTIDE))
-                projectileInfoList.add(new ProjectileInfo(gravity, drag, vel, offset, position, false, waterDrag, ORDER_MDG));
+            results.add(new ProjectileInfo(0.05, 0.99, vel, offset, position, false, 0.99));
 
         } else if (item instanceof SnowballItem || item instanceof EggItem || item instanceof EnderpearlItem) {
-            waterDrag = 0.8;
-            gravity = 0.03;
-
-            Vec3 vel = player.getViewVector(tickProgress).scale(SnowballItem.PROJECTILE_SHOOT_POWER);
+            Vec3 dir = dirFromRotation(player.getXRot(), player.getYRot(), 0);
+            Vec3 vel = dir.normalize().scale(1.5).add(addedVel);
             Vec3 offset = new Vec3(0.2, -0.06, 0.2);
 
-            projectileInfoList.add(new ProjectileInfo(gravity, drag, vel, offset, position, false, waterDrag, ORDER_GDM));
+            results.add(new ProjectileInfo(0.03, 0.99, vel, offset, position, false, 0.8));
 
         } else if (item instanceof WindChargeItem) {
-            gravity = 0;
-            drag = 0.95;
-            waterDrag = 0.8;
-
-            Vec3 vel = player.getViewVector(tickProgress);
+            Vec3 dir = dirFromRotation(player.getXRot(), player.getYRot(), 0);
+            Vec3 vel = dir.normalize().add(addedVel);
             Vec3 offset = new Vec3(0.2, -0.06, 0.2);
 
-            projectileInfoList.add(new ProjectileInfo(gravity, drag, vel, offset, position, false, waterDrag, ORDER_MDG));
+            results.add(new ProjectileInfo(0, 1.0, vel, offset, position, false, 0.8));
 
         } else if (item instanceof ThrowablePotionItem) {
-            waterDrag = 0.8;
-
-            Vec3 dir = angleFromRot(player.getXRot(), player.getYRot(), -20.0F);
-            Vec3 vel = dir.scale(ThrowablePotionItem.PROJECTILE_SHOOT_POWER);
+            Vec3 dir = dirFromRotation(player.getXRot(), player.getYRot(), -20.0f);
+            Vec3 vel = dir.normalize().scale(0.5).add(addedVel);
             Vec3 offset = new Vec3(0.2, -0.06, 0.2);
 
-            projectileInfoList.add(new ProjectileInfo(gravity, drag, vel, offset, position, false, waterDrag, ORDER_GDM));
+            results.add(new ProjectileInfo(0.05, 0.99, vel, offset, position, false, 0.8));
 
         } else if (item instanceof ExperienceBottleItem) {
-            gravity = 0.07;
-            waterDrag = 0.8;
-
-            Vec3 dir = angleFromRot(player.getXRot(), player.getYRot(), -20.0F).normalize();
-            Vec3 vel = dir.scale(0.7);
+            Vec3 dir = dirFromRotation(player.getXRot(), player.getYRot(), -20.0f);
+            Vec3 vel = dir.normalize().scale(0.7).add(addedVel);
             Vec3 offset = new Vec3(0.2, -0.06, 0.2);
 
-            projectileInfoList.add(new ProjectileInfo(gravity, drag, vel, offset, position, false, waterDrag, ORDER_GDM));
+            results.add(new ProjectileInfo(0.07, 0.99, vel, offset, position, false, 0.8));
 
         } else if (item instanceof FishingRodItem && player.fishing == null) {
-            float f = player.getXRot();
-            float g = player.getYRot();
-            float h = Mth.cos(-g * (float) (Math.PI / 180.0) - (float) Math.PI);
-            float i = Mth.sin(-g * (float) (Math.PI / 180.0) - (float) Math.PI);
-            float j = -Mth.cos(-f * (float) (Math.PI / 180.0));
-            float k = Mth.sin(-f * (float) (Math.PI / 180.0));
-            Vec3 p = player.getEyePosition(tickProgress);
-            position = new Vec3(p.x - i * 0.3, p.y, p.z - h * 0.3);
-            Vec3 vec3d = new Vec3(-i, Mth.clamp(-(k / j), -5.0F, 5.0F), -h);
-            double m = vec3d.length();
-            vec3d = vec3d.multiply(0.6 / m + 0.5, 0.6 / m + 0.5, 0.6 / m + 0.5);
-            Vec3 vel = vec3d;
+            float pitch = player.getXRot();
+            float yaw = player.getYRot();
+            float h = Mth.cos(-yaw * ((float) Math.PI / 180f) - (float) Math.PI);
+            float i = Mth.sin(-yaw * ((float) Math.PI / 180f) - (float) Math.PI);
+            float j = -Mth.cos(-pitch * ((float) Math.PI / 180f));
+            float k = Mth.sin(-pitch * ((float) Math.PI / 180f));
 
-            gravity = 0.03;
-            drag = 0.92;
+            Vec3 p = player.getEyePosition(tickProgress);
+            position = new Vec3(p.x - (double) i * 0.3, p.y, p.z - (double) h * 0.3);
+
+            Vec3 vec = new Vec3(-i, Mth.clamp(-(k / j), -5.0f, 5.0f), -h);
+            double len = vec.length();
+            vec = vec.multiply(0.6 / len + 0.5, 0.6 / len + 0.5, 0.6 / len + 0.5);
+            Vec3 vel = vec.add(addedVel);
 
             Vec3 offset = new Vec3(0.16, -0.06, 0.2);
-
-            projectileInfoList.add(new ProjectileInfo(gravity, drag, vel, offset, position, true, drag, ORDER_GMD));
+            results.add(new ProjectileInfo(0.03, 0.92, vel, offset, position, true, 0.92));
         }
 
-        return projectileInfoList;
+        return results;
+    }
+
+    private static Vec3 dirFromRotation(float pitch, float yaw, float roll) {
+        float f = -Mth.sin(yaw * ((float) Math.PI / 180f)) * Mth.cos(pitch * ((float) Math.PI / 180f));
+        float g = -Mth.sin((pitch + roll) * ((float) Math.PI / 180f));
+        float h = Mth.cos(yaw * ((float) Math.PI / 180f)) * Mth.cos(pitch * ((float) Math.PI / 180f));
+        return new Vec3(f, g, h);
     }
 
     public static boolean hasEnchantment(ItemStack stack, ResourceKey<Enchantment> enchantment) {
-        var enchantmentRegistry = Minecraft.getInstance().player.level().registryAccess()
-            .lookupOrThrow(Registries.ENCHANTMENT);
-
-        Holder<Enchantment> enchantmentEntry = enchantmentRegistry.getOrThrow(enchantment);
-
-        return EnchantmentHelper.getItemEnchantmentLevel(enchantmentEntry, stack) > 0;
-    }
-
-    private static Vec3 angleFromRot(float f, float g, float h) {
-        float k = -Mth.sin(g * 0.017453292F) * Mth.cos(f * 0.017453292F);
-        float l = -Mth.sin((f + h) * 0.017453292F);
-        float m = Mth.cos(g * 0.017453292F) * Mth.cos(f * 0.017453292F);
-        return new Vec3(k, l, m).normalize();
+        var reg = Minecraft.getInstance().player.level().registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
+        Holder<Enchantment> entry = reg.getOrThrow(enchantment);
+        return EnchantmentHelper.getItemEnchantmentLevel(entry, stack) > 0;
     }
 }
