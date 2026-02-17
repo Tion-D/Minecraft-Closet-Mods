@@ -5,12 +5,12 @@ Holy Closets
 # if you want use command do /pvp
 
 # Current mods added:
-Aim assist
-No Render
-Shield Disabler
-Hit Select
-Auto Totem (legit)
-criticals
+- Aim assist
+- No Render
+- Shield Disabler
+- Hit Select
+- Auto Totem (legit)
+- criticals forked from (https://github.com/MeteorDevelopment/meteor-client)
 
 ### For 1.21.11
 
