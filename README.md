@@ -11,6 +11,7 @@ Holy Closets
 - Hit Select
 - Auto Totem (legit)
 - criticals forked from (https://github.com/MeteorDevelopment/meteor-client)
+- esp
 
 ### For 1.21.11
 
