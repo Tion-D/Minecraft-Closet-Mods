@@ -31,6 +31,10 @@ public class AutoTotemModule {
     private boolean totemJustPopped = false;
     private int tickDelay = 0;
 
+    private int lastTrackedSlot = -1;
+    private int playerOverrideCooldown = 0;
+    private static final int OVERRIDE_COOLDOWN_TICKS = 15;
+
     public void onTick(Minecraft client) {
         if (client.player == null || client.level == null) return;
 
@@ -42,16 +46,28 @@ public class AutoTotemModule {
 
         LocalPlayer player = client.player;
         boolean offhandIsTotem = isTotem(player.getOffhandItem());
+        int currentSlot = getSlot(player);
+
+        if (state == State.IDLE && lastTrackedSlot >= 0 && currentSlot != lastTrackedSlot) {
+            playerOverrideCooldown = OVERRIDE_COOLDOWN_TICKS;
+        }
+        lastTrackedSlot = currentSlot;
+
+        if (playerOverrideCooldown > 0) {
+            playerOverrideCooldown--;
+        }
 
         if (state == State.IDLE) {
             if (lastOffhandWasTotem && !offhandIsTotem && player.getOffhandItem().isEmpty()) {
                 totemJustPopped = true;
+                playerOverrideCooldown = 0;
             }
         }
 
         if (state != State.IDLE) {
             handleState(client, player, config);
             lastOffhandWasTotem = isTotem(player.getOffhandItem());
+            lastTrackedSlot = getSlot(player);
             return;
         }
 
@@ -61,14 +77,21 @@ public class AutoTotemModule {
             return;
         }
 
+        if (player.isUsingItem()) {
+            lastOffhandWasTotem = offhandIsTotem;
+            return;
+        }
+
         String mode = config.autoTotemMode;
+        boolean forceTotem = shouldForceTotem(player, config);
 
         if (mode.equals("hotbar") || mode.equals("both")) {
-            if (shouldForceTotem(player, config)) {
-                if (!isTotem(player.getMainHandItem())) {
+            if (forceTotem && !isTotem(player.getMainHandItem())) {
+                if (playerOverrideCooldown <= 0) {
                     int totemSlot = findTotemInHotbar(player);
                     if (totemSlot != -1) {
                         setSlot(player, totemSlot);
+                        lastTrackedSlot = totemSlot;
                         tickDelay = config.autoTotemDelay;
                         totemJustPopped = false;
                         lastOffhandWasTotem = offhandIsTotem;
@@ -80,13 +103,15 @@ public class AutoTotemModule {
 
         if (mode.equals("offhand") || mode.equals("both")) {
             if (!offhandIsTotem) {
+                boolean offhandEmpty = player.getOffhandItem().isEmpty();
                 boolean shouldRestock = false;
 
-                if (mode.equals("both")) {
+                if (mode.equals("both") && offhandEmpty) {
                     shouldRestock = true;
-                } else {
-                    if (totemJustPopped) shouldRestock = true;
-                    if (!shouldRestock && shouldForceTotem(player, config)) {
+                } else if (mode.equals("offhand")) {
+                    if (totemJustPopped && offhandEmpty) {
+                        shouldRestock = true;
+                    } else if (forceTotem && offhandEmpty) {
                         shouldRestock = true;
                     }
                 }
@@ -97,6 +122,7 @@ public class AutoTotemModule {
                         beginHotbarToOffhand(player, hotbarSlot);
                         totemJustPopped = false;
                         lastOffhandWasTotem = isTotem(player.getOffhandItem());
+                        lastTrackedSlot = getSlot(player);
                         return;
                     }
 
@@ -143,6 +169,7 @@ public class AutoTotemModule {
             case HOTBAR_SWAPPED -> {
                 if (originalSlot >= 0 && originalSlot < 9) {
                     setSlot(player, originalSlot);
+                    lastTrackedSlot = originalSlot;
                 }
                 originalSlot = -1;
                 state = State.IDLE;
@@ -264,6 +291,8 @@ public class AutoTotemModule {
         tickDelay = 0;
         totemJustPopped = false;
         lastOffhandWasTotem = false;
+        playerOverrideCooldown = 0;
+        lastTrackedSlot = -1;
     }
 
     private boolean isTotem(ItemStack stack) {
