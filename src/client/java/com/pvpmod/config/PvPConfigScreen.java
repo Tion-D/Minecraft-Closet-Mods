@@ -16,7 +16,7 @@ public class PvPConfigScreen extends Screen {
     private int page = 0;
     private boolean listeningForKey = false;
     private Button keyButton = null;
-    private static final String[] PAGES = {"Aim", "Crits", "Shield", "HitSel", "Traj", "Totem", "Render", "ESP"};
+    private static final String[] PAGES = {"Aim", "Crits", "Shield", "HitSel", "Traj", "Totem", "Render", "ESP", "TBot"};
 
     public PvPConfigScreen(Screen parent) {
         super(Component.literal("PvP Mod Settings"));
@@ -45,13 +45,14 @@ public class PvPConfigScreen extends Screen {
 
         switch (page) {
             case 0 -> initAimAssist(centerX, y, buttonWidth);
-            case 1 -> initCriticals(centerX, y, buttonWidth);
-            case 2 -> initShieldDisabler(centerX, y, buttonWidth);
-            case 3 -> initHitSelect(centerX, y, buttonWidth);
-            case 4 -> initTrajectory(centerX, y, buttonWidth);
+            case 1 -> initTriggerBot(centerX, y, buttonWidth);
+            case 2 -> initCriticals(centerX, y, buttonWidth);
+            case 3 -> initShieldDisabler(centerX, y, buttonWidth);
+            case 4 -> initHitSelect(centerX, y, buttonWidth);
             case 5 -> initAutoTotem(centerX, y, buttonWidth);
-            case 6 -> initNoRender(centerX, y, buttonWidth);
-            case 7 -> initESP(centerX, y, buttonWidth);
+            case 6 -> initESP(centerX, y, buttonWidth);
+            case 7 -> initTrajectory(centerX, y, buttonWidth);
+            case 8 -> initNoRender(centerX, y, buttonWidth);
         }
     }
 
@@ -244,6 +245,33 @@ public class PvPConfigScreen extends Screen {
         y += 30;
 
         addSlider(centerX, y, w, "Opacity", config.espAlpha, 0.1, 1.0, 2, v -> { config.espAlpha = v.floatValue(); config.save(); });
+        y += 30;
+        addDoneButton(centerX, y);
+    }
+
+    private void initTriggerBot(int centerX, int y, int w) {
+        addRenderableWidget(Button.builder(
+                Component.literal("Enabled: " + (config.triggerBotEnabled ? "ON" : "OFF")),
+                btn -> {
+                    config.triggerBotEnabled = !config.triggerBotEnabled;
+                    config.save();
+                    btn.setMessage(Component.literal("Enabled: " + (config.triggerBotEnabled ? "ON" : "OFF")));
+                })
+                .bounds(centerX - w / 2, y, w, 20)
+                .tooltip(Tooltip.create(Component.literal("Always off on startup")))
+                .build());
+        y += 24;
+        addSlider(centerX, y, w, "Range", config.triggerBotRange, 1.0, 3.0, 1, v -> { config.triggerBotRange = v; config.save(); });
+        y += 24;
+        addToggle(centerX, y, w, "Smart Delay", config.triggerBotSmartDelay, v -> { config.triggerBotSmartDelay = v; config.save(); });
+        y += 24;
+        addSlider(centerX, y, w, "Min Delay (ticks)", config.triggerBotMinDelay, 0.0, 5.0, 0, v -> { config.triggerBotMinDelay = (int) v.doubleValue(); config.save(); });
+        y += 24;
+        addToggle(centerX, y, w, "Players Only", config.triggerBotPlayersOnly, v -> { config.triggerBotPlayersOnly = v; config.save(); });
+        y += 24;
+        addSlider(centerX, y, w, "Min Reaction (ticks)", config.triggerBotMinReaction, 1.0, 6.0, 0, v -> { config.triggerBotMinReaction = (int) v.doubleValue(); config.save(); });
+        y += 24;
+        addSlider(centerX, y, w, "Max Reaction (ticks)", config.triggerBotMaxReaction, 2.0, 8.0, 0, v -> { config.triggerBotMaxReaction = (int) v.doubleValue(); config.save(); });
         y += 30;
         addDoneButton(centerX, y);
     }

@@ -51,6 +51,15 @@ public class PvPConfig {
     public boolean autoTotemElytra = true;
     public boolean autoTotemFall = true;
 
+    // ===== TriggerBot =====
+   public boolean triggerBotEnabled = false;
+    public double triggerBotRange = 3.0;
+    public boolean triggerBotSmartDelay = true;
+    public int triggerBotMinDelay = 0;
+    public boolean triggerBotPlayersOnly = true;
+    public int triggerBotMinReaction = 2;
+    public int triggerBotMaxReaction = 4;
+
     // ===== No Render =====
     public boolean noRenderEnabled = true;
     public boolean noBlindness = true;
@@ -110,6 +119,7 @@ public class PvPConfig {
                 PvPConfig config = GSON.fromJson(reader, PvPConfig.class);
                 if (config != null) {
                     config.criticalsEnabled = false;
+                    config.triggerBotEnabled = false;
                     return config;
                 }
             } catch (IOException e) {
