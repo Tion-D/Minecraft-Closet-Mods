@@ -5,7 +5,8 @@
     "client": [
         "GuiMixin",
         "ScreenEffectRendererMixin",
-        "BossHealthOverlayMixin"
+        "BossHealthOverlayMixin",
+        "MinecraftAccessor"
     ],
     "injectors": {
         "defaultRequire": 1

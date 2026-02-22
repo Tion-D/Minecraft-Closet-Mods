@@ -8,6 +8,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.AxeItem;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
+import com.pvpmod.mixin.MinecraftAccessor;
 
 public class ShieldDisablerModule {
 
@@ -101,10 +102,11 @@ public class ShieldDisablerModule {
     }
 
     private void simulateAttack(Minecraft client, Player target) {
-        if (client.gameMode == null) return;
-        if (client.player == null) return;
-        client.gameMode.attack(client.player, target);
-        client.player.swing(InteractionHand.MAIN_HAND);
+        // if (client.gameMode == null) return;
+        // if (client.player == null) return;
+        // client.gameMode.attack(client.player, target);
+        // client.player.swing(InteractionHand.MAIN_HAND);
+        ((MinecraftAccessor) client).invokeStartAttack();
     }
 
     private int findAxeSlot(LocalPlayer player) {

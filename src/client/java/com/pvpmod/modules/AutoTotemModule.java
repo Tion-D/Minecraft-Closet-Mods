@@ -34,7 +34,8 @@ public class AutoTotemModule {
     private int lastTrackedSlot = -1;
     private int playerOverrideCooldown = 0;
     private static final int OVERRIDE_COOLDOWN_TICKS = 15;
-
+    private boolean userOpenedInventory = false;
+    
     public void onTick(Minecraft client) {
         if (client.player == null || client.level == null) return;
 
@@ -81,7 +82,7 @@ public class AutoTotemModule {
             lastOffhandWasTotem = offhandIsTotem;
             return;
         }
-
+        userOpenedInventory = client.screen instanceof InventoryScreen && state == State.IDLE;
         String mode = config.autoTotemMode;
         boolean forceTotem = shouldForceTotem(player, config);
 
@@ -127,7 +128,7 @@ public class AutoTotemModule {
                     }
 
                     int invSlot = findTotemInMainInventory(player);
-                    if (invSlot != -1 && client.screen == null) {
+                    if (invSlot != -1 && (client.screen == null || client.screen instanceof InventoryScreen)) {
                         beginInventoryToOffhand(client, player, invSlot);
                         totemJustPopped = false;
                         lastOffhandWasTotem = isTotem(player.getOffhandItem());
@@ -141,7 +142,7 @@ public class AutoTotemModule {
             int prefSlot = config.autoTotemHotbarSlot;
             if (!isTotem(player.getInventory().getItem(prefSlot))) {
                 int invSlot = findTotemInMainInventory(player);
-                if (invSlot != -1 && client.screen == null) {
+                if (invSlot != -1 && (client.screen == null || client.screen instanceof InventoryScreen)) {
                     beginInventoryToHotbar(client, player, invSlot, prefSlot);
                     lastOffhandWasTotem = isTotem(player.getOffhandItem());
                     return;
@@ -191,7 +192,7 @@ public class AutoTotemModule {
             }
 
             case INV_CLICKED -> {
-                if (client.screen instanceof InventoryScreen) {
+                if (!userOpenedInventory && client.screen instanceof InventoryScreen) {
                     client.setScreen(null);
                 }
                 pendingInvSlot = -1;
@@ -215,7 +216,7 @@ public class AutoTotemModule {
             }
 
             case RESTOCK_CLICKED -> {
-                if (client.screen instanceof InventoryScreen) {
+                if (!userOpenedInventory && client.screen instanceof InventoryScreen) {
                     client.setScreen(null);
                 }
                 pendingInvSlot = -1;
@@ -246,14 +247,18 @@ public class AutoTotemModule {
 
     private void beginInventoryToOffhand(Minecraft client, LocalPlayer player, int invSlot) {
         pendingInvSlot = invSlot;
-        client.setScreen(new InventoryScreen(player));
+        if (!(client.screen instanceof InventoryScreen)) {
+            client.setScreen(new InventoryScreen(player));
+        }
         state = State.INV_OPENED;
     }
 
     private void beginInventoryToHotbar(Minecraft client, LocalPlayer player, int invSlot, int hotbarSlot) {
         pendingInvSlot = invSlot;
         pendingHotbarTarget = hotbarSlot;
-        client.setScreen(new InventoryScreen(player));
+        if (!(client.screen instanceof InventoryScreen)) {
+            client.setScreen(new InventoryScreen(player));
+        }
         state = State.RESTOCK_OPENED;
     }
 

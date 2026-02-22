@@ -16,7 +16,7 @@ public class PvPConfigScreen extends Screen {
     private int page = 0;
     private boolean listeningForKey = false;
     private Button keyButton = null;
-    private static final String[] PAGES = {"Aim", "Crits", "Shield", "HitSel", "Traj", "Totem", "Render", "ESP", "TBot"};
+    private static final String[] PAGES = {"Aim", "TBot", "Crits", "Shield", "HitSel", "Totem", "ESP", "Traj", "Render"};
 
     public PvPConfigScreen(Screen parent) {
         super(Component.literal("PvP Mod Settings"));
@@ -58,6 +58,16 @@ public class PvPConfigScreen extends Screen {
 
     private void initAimAssist(int centerX, int y, int w) {
         addToggle(centerX, y, w, "Enabled", config.aimAssistEnabled, v -> { config.aimAssistEnabled = v; config.save(); });
+        y += 24;
+        addRenderableWidget(Button.builder(
+            Component.literal("Mode: " + (config.aimRageMode ? "RAGE" : "LEGIT")),
+            btn -> {
+                config.aimRageMode = !config.aimRageMode;
+                config.save();
+                btn.setMessage(Component.literal("Mode: " + (config.aimRageMode ? "RAGE" : "LEGIT")));
+            })
+            .bounds(centerX - w / 2, y, w, 20)
+            .build());
         y += 24;
         addSlider(centerX, y, w, "Radius", config.aimRadius, 1.0, 6.0, 1, v -> { config.aimRadius = v; config.save(); });
         y += 24;

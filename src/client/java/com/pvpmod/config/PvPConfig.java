@@ -25,7 +25,8 @@ public class PvPConfig {
     public double aimSpeed = 1;
     public double aimSmoothing = 0.7;
     public boolean aimVerticalAssist = false;
-
+    public boolean aimRageMode = false;
+    
     // ===== Criticals =====
     public boolean criticalsEnabled = false;
     public String criticalsMode = "packet";
