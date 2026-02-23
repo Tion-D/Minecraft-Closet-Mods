@@ -11,6 +11,7 @@ import com.pvpmod.modules.NoRenderModule;
 import com.pvpmod.modules.PlayerESPModule;
 import com.pvpmod.modules.TriggerBotModule;
 import com.pvpmod.modules.LogoutSpotsModule;
+import com.pvpmod.modules.FastMendModule;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
@@ -47,6 +48,7 @@ public class PvPModClient implements ClientModInitializer {
     private final PlayerESPModule playerESP = new PlayerESPModule();
     private final TriggerBotModule triggerBot = new TriggerBotModule();
     private final LogoutSpotsModule logoutSpots = new LogoutSpotsModule();
+    private final FastMendModule fastMend = new FastMendModule();
 
     private static final String KEY_CATEGORY = "key.categories.pvpmod";
     private static final String KEY_AIM_TOGGLE = "key.pvpmod.aim_toggle";
@@ -305,6 +307,7 @@ public class PvPModClient implements ClientModInitializer {
             noRender.onTick(client);
             triggerBot.onTick(client);
             logoutSpots.onTick(client);
+            fastMend.onTick(client);
         });
 
         HudRenderCallback.EVENT.register((graphics, tickDelta) -> {

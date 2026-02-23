@@ -16,7 +16,7 @@ public class PvPConfigScreen extends Screen {
     private int page = 0;
     private boolean listeningForKey = false;
     private Button keyButton = null;
-    private static final String[] PAGES = {"Aim", "TBot", "Crits", "Shield", "HitSel", "Totem", "ESP", "Traj", "Render"};
+    private static final String[] PAGES = {"Aim", "TBot", "Crits", "Shield", "HitSel", "Totem", "ESP", "Traj", "Logout", "Render"};
 
     public PvPConfigScreen(Screen parent) {
         super(Component.literal("PvP Mod Settings"));
@@ -52,7 +52,8 @@ public class PvPConfigScreen extends Screen {
             case 5 -> initAutoTotem(centerX, y, buttonWidth);
             case 6 -> initESP(centerX, y, buttonWidth);
             case 7 -> initTrajectory(centerX, y, buttonWidth);
-            case 8 -> initNoRender(centerX, y, buttonWidth);
+            case 8 -> initLogout(centerX, y, buttonWidth);
+            case 9 -> initNoRender(centerX, y, buttonWidth);
         }
     }
 
@@ -287,7 +288,19 @@ public class PvPConfigScreen extends Screen {
         y += 30;
         addDoneButton(centerX, y);
     }
-
+    private void initLogout(int centerX, int y, int w) {
+        addRenderableWidget(Button.builder(
+                Component.literal("Enabled: " + (config.logoutSpotsEnabled ? "ON" : "OFF")),
+                btn -> {
+                    config.logoutSpotsEnabled = !config.logoutSpotsEnabled;
+                    config.save();
+                    btn.setMessage(Component.literal("Enabled: " + (config.logoutSpotsEnabled ? "ON" : "OFF")));
+                })
+                .bounds(centerX - w / 2, y, w, 20)
+                .build());
+        y += 30;
+        addDoneButton(centerX, y);
+    }
     private void addToggle(int centerX, int y, int w, String label, boolean current, java.util.function.Consumer<Boolean> setter) {
         final boolean[] state = {current};
         addRenderableWidget(Button.builder(

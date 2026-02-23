@@ -88,6 +88,10 @@ public class PvPConfig {
     // ===== Logout Spots =====
     public boolean logoutSpotsEnabled = true;
 
+    // ===== Fast Mend =====
+    public boolean fastMendEnabled = true;
+    public int fastMendDelay = 1;
+
     // ===== Keybinds =====
     public int aimToggleKeyCode = 88; // KEY_X
 
