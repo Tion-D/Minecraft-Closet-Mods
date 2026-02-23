@@ -79,6 +79,8 @@ public class PvPConfigScreen extends Screen {
         y += 24;
         addSlider(centerX, y, w, "Snap Angle", config.aimSnapAngle, 10.0, 180.0, 0, v -> { config.aimSnapAngle = v; config.save(); });
         y += 24;
+        addToggle(centerX, y, w, "Weapon Only", config.aimWeaponOnly, v -> { config.aimWeaponOnly = v; config.save(); });
+        y += 24;
         keyButton = addRenderableWidget(Button.builder(
                 Component.literal("Toggle Key: " + getKeyName(config.aimToggleKeyCode)),
                 btn -> {

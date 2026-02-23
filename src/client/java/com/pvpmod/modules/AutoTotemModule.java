@@ -35,7 +35,9 @@ public class AutoTotemModule {
     private int playerOverrideCooldown = 0;
     private static final int OVERRIDE_COOLDOWN_TICKS = 15;
     private boolean userOpenedInventory = false;
-    
+    private boolean swapInFlight = false;
+    private int swapInFlightTimeout = 0;
+
     public void onTick(Minecraft client) {
         if (client.player == null || client.level == null) return;
 
@@ -74,19 +76,34 @@ public class AutoTotemModule {
 
         if (tickDelay > 0) {
             tickDelay--;
+            if (swapInFlight && isTotem(player.getOffhandItem())) {
+                swapInFlight = false;
+            }
             lastOffhandWasTotem = offhandIsTotem;
             return;
         }
-
-        if (player.isUsingItem()) {
-            lastOffhandWasTotem = offhandIsTotem;
-            return;
+        if (swapInFlight) {
+            if (isTotem(player.getOffhandItem())) {
+                swapInFlight = false;
+            } else if (--swapInFlightTimeout <= 0) {
+                swapInFlight = false;
+            } else {
+                lastOffhandWasTotem = offhandIsTotem;
+                return;
+            }
         }
         userOpenedInventory = client.screen instanceof InventoryScreen && state == State.IDLE;
+        boolean usingItem = player.isUsingItem();
         String mode = config.autoTotemMode;
         boolean forceTotem = shouldForceTotem(player, config);
+        if (usingItem && !offhandIsTotem && (forceTotem || totemJustPopped)) {
+            client.options.keyUse.setDown(false);
+            player.releaseUsingItem();
+            lastOffhandWasTotem = offhandIsTotem;
+            return;
+        }
 
-        if (mode.equals("hotbar") || mode.equals("both")) {
+        if ((mode.equals("hotbar") || mode.equals("both")) && !usingItem) {
             if (forceTotem && !isTotem(player.getMainHandItem())) {
                 if (playerOverrideCooldown <= 0) {
                     int totemSlot = findTotemInHotbar(player);
@@ -120,7 +137,7 @@ public class AutoTotemModule {
                 if (shouldRestock) {
                     int hotbarSlot = findTotemInHotbarForOffhand(player, config);
                     if (hotbarSlot != -1) {
-                        beginHotbarToOffhand(player, hotbarSlot);
+                        beginHotbarToOffhand(player, hotbarSlot, config);
                         totemJustPopped = false;
                         lastOffhandWasTotem = isTotem(player.getOffhandItem());
                         lastTrackedSlot = getSlot(player);
@@ -174,7 +191,9 @@ public class AutoTotemModule {
                 }
                 originalSlot = -1;
                 state = State.IDLE;
-                tickDelay = config.autoTotemDelay;
+                swapInFlight = true;
+                swapInFlightTimeout = 20;
+                tickDelay = tickDelay = config.autoTotemDelay;;
             }
 
             case INV_OPENED -> {
@@ -197,7 +216,9 @@ public class AutoTotemModule {
                 }
                 pendingInvSlot = -1;
                 state = State.IDLE;
-                tickDelay = config.autoTotemDelay;
+                swapInFlight = true;
+                swapInFlightTimeout = 20;
+                tickDelay = tickDelay = config.autoTotemDelay;;
             }
 
             case RESTOCK_OPENED -> {
@@ -222,12 +243,14 @@ public class AutoTotemModule {
                 pendingInvSlot = -1;
                 pendingHotbarTarget = -1;
                 state = State.IDLE;
-                tickDelay = config.autoTotemDelay;
+                swapInFlight = true;
+                swapInFlightTimeout = 20;
+                tickDelay = tickDelay = config.autoTotemDelay;;
             }
         }
     }
 
-    private void beginHotbarToOffhand(LocalPlayer player, int hotbarSlot) {
+    private void beginHotbarToOffhand(LocalPlayer player, int hotbarSlot, PvPConfig config) {
         originalSlot = getSlot(player);
 
         if (originalSlot == hotbarSlot) {
@@ -237,7 +260,8 @@ public class AutoTotemModule {
             ));
             originalSlot = -1;
             state = State.IDLE;
-            tickDelay = 1;
+            swapInFlight = true;
+            tickDelay = tickDelay = config.autoTotemDelay;;
             return;
         }
 
@@ -298,6 +322,8 @@ public class AutoTotemModule {
         lastOffhandWasTotem = false;
         playerOverrideCooldown = 0;
         lastTrackedSlot = -1;
+        swapInFlight = false;
+        swapInFlightTimeout = 0;
     }
 
     private boolean isTotem(ItemStack stack) {

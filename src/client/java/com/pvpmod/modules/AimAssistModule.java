@@ -16,15 +16,12 @@ public class AimAssistModule {
     private Player currentTarget = null;
     private Vec3 lastTargetPos = null;
 
-    // GCD
     private double cachedGCD = 0;
     private double lastSensitivity = -1;
 
-    // Residual accumulation (prevents jitter)
     private float yawResidue = 0f;
     private float pitchResidue = 0f;
 
-    // Rotation tracking for legit mode
     private float lastYaw = 0f;
     private float lastPitch = 0f;
     private boolean trackingInitialized = false;
@@ -35,14 +32,23 @@ public class AimAssistModule {
             return;
         }
 
+        LocalPlayer player = client.player;
+        updateGCD(client);
+
         PvPConfig config = PvPConfig.getInstance();
         if (!config.aimAssistEnabled) {
             clearTarget();
             return;
         }
 
-        LocalPlayer player = client.player;
-        updateGCD(client);
+        if (config.aimWeaponOnly) {
+            var held = player.getMainHandItem();
+            if (!held.is(net.minecraft.tags.ItemTags.SWORDS)
+                    && !(held.getItem() instanceof net.minecraft.world.item.AxeItem)) {
+                clearTarget();
+                return;
+            }
+        }
 
         List<? extends Player> candidates = client.level.players().stream()
                 .filter(p -> p != player)
@@ -107,9 +113,6 @@ public class AimAssistModule {
         }
     }
 
-    // ==========================================
-    // RAGE — direct pull toward target
-    // ==========================================
     private void renderRage(LocalPlayer player, PvPConfig config, float delta) {
         Vec3 targetPos = getTargetAimPos(currentTarget);
         Vec3 eyePos = player.getEyePosition();
@@ -129,7 +132,6 @@ public class AimAssistModule {
         float rawYaw = yawDiff * frameSpeed;
         float rawPitch = pitchDiff * frameSpeed;
 
-        // Accumulate + snap
         yawResidue += rawYaw;
         pitchResidue += rawPitch;
 
@@ -151,9 +153,6 @@ public class AimAssistModule {
         }
     }
 
-    // ==========================================
-    // LEGIT — friction + pull + target tracking
-    // ==========================================
     private void renderLegit(LocalPlayer player, PvPConfig config, float delta) {
         if (!trackingInitialized) {
             lastYaw = player.getYRot();
@@ -177,7 +176,6 @@ public class AimAssistModule {
         float yawToTarget = wrapDegrees(idealYaw - player.getYRot());
         float pitchToTarget = idealPitch - player.getXRot();
 
-        // Closeness: 1.0 = on target, 0.0 = FOV edge
         double angle = getAngleTo(player, currentTarget);
         double halfFov = config.aimFov / 2.0;
         float closeness = (float) Math.max(0, 1.0 - (angle / halfFov));
@@ -186,19 +184,16 @@ public class AimAssistModule {
         float yawAdjust = 0f;
         float pitchAdjust = 0f;
 
-        // PULL — gentle nudge toward target
         float pullStrength = (float) config.aimSpeed * closeness * delta * 0.4f;
         yawAdjust += yawToTarget * pullStrength;
         pitchAdjust += pitchToTarget * pullStrength;
 
-        // FRICTION — slow crosshair near target
         if (mouseMoving) {
             float frictionStrength = (float) config.aimSpeed * closeness * 0.3f;
             yawAdjust += -playerYawDelta * frictionStrength;
             pitchAdjust += -playerPitchDelta * frictionStrength;
         }
 
-        // TARGET COMPENSATION — follow strafing
         if (lastTargetPos != null) {
             Vec3 targetDelta = targetPos.subtract(lastTargetPos);
 
@@ -218,7 +213,6 @@ public class AimAssistModule {
 
         lastTargetPos = targetPos;
 
-        // Accumulate + snap
         yawResidue += yawAdjust;
         pitchResidue += pitchAdjust;
 

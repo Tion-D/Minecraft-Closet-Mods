@@ -10,6 +10,7 @@ import com.pvpmod.modules.AutoTotemModule;
 import com.pvpmod.modules.NoRenderModule;
 import com.pvpmod.modules.PlayerESPModule;
 import com.pvpmod.modules.TriggerBotModule;
+import com.pvpmod.modules.LogoutSpotsModule;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
@@ -45,6 +46,7 @@ public class PvPModClient implements ClientModInitializer {
     private final NoRenderModule noRender = new NoRenderModule();
     private final PlayerESPModule playerESP = new PlayerESPModule();
     private final TriggerBotModule triggerBot = new TriggerBotModule();
+    private final LogoutSpotsModule logoutSpots = new LogoutSpotsModule();
 
     private static final String KEY_CATEGORY = "key.categories.pvpmod";
     private static final String KEY_AIM_TOGGLE = "key.pvpmod.aim_toggle";
@@ -196,6 +198,16 @@ public class PvPModClient implements ClientModInitializer {
                         ));
                         return 1;
                     }))
+                .then(literal("logoutspots")
+                    .executes(ctx -> {
+                        PvPConfig config = PvPConfig.getInstance();
+                        config.logoutSpotsEnabled = !config.logoutSpotsEnabled;
+                        config.save();
+                        ctx.getSource().sendFeedback(Component.literal(
+                            "Logout Spots: " + (config.logoutSpotsEnabled ? "§aON" : "§cOFF")
+                        ));
+                        return 1;
+                    }))
                 .then(literal("friend")
                     .then(literal("add")
                         .then(argument("name", StringArgumentType.word())
@@ -292,6 +304,7 @@ public class PvPModClient implements ClientModInitializer {
             autoTotem.onTick(client);
             noRender.onTick(client);
             triggerBot.onTick(client);
+            logoutSpots.onTick(client);
         });
 
         HudRenderCallback.EVENT.register((graphics, tickDelta) -> {
@@ -305,6 +318,7 @@ public class PvPModClient implements ClientModInitializer {
         WorldRenderEvents.AFTER_ENTITIES.register(context -> {
             trajectory.onWorldRender(context);
             playerESP.onWorldRender(context);
+            logoutSpots.onWorldRender(context);
         });
     }
 }

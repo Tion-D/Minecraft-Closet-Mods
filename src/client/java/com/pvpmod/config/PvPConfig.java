@@ -26,6 +26,7 @@ public class PvPConfig {
     public double aimSmoothing = 0.7;
     public boolean aimVerticalAssist = false;
     public boolean aimRageMode = false;
+    public boolean aimWeaponOnly = true;
     
     // ===== Criticals =====
     public boolean criticalsEnabled = false;
@@ -83,6 +84,9 @@ public class PvPConfig {
     public float espFriendB = 0.0f;
     public float espAlpha = 0.8f;
     public boolean espNametags = true;
+
+    // ===== Logout Spots =====
+    public boolean logoutSpotsEnabled = true;
 
     // ===== Keybinds =====
     public int aimToggleKeyCode = 88; // KEY_X
