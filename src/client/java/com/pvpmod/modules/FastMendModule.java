@@ -5,8 +5,8 @@ import com.pvpmod.mixin.MinecraftAccessor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.entity.EquipmentSlot;
+
+import java.util.concurrent.ThreadLocalRandom;
 
 public class FastMendModule {
 
@@ -14,10 +14,7 @@ public class FastMendModule {
     private boolean wasActive = false;
 
     public void onTick(Minecraft client) {
-        if (client.player == null || client.level == null || client.gameMode == null) {
-            wasActive = false;
-            return;
-        }
+        if (client.player == null || client.level == null) return;
 
         PvPConfig config = PvPConfig.getInstance();
         if (!config.fastMendEnabled) {
@@ -25,29 +22,37 @@ public class FastMendModule {
             return;
         }
 
-        if (client.screen != null) {
-            restore(client);
-            return;
-        }
-
         LocalPlayer player = client.player;
-
-        boolean holdingXP = player.getMainHandItem().is(Items.EXPERIENCE_BOTTLE)
-                || player.getOffhandItem().is(Items.EXPERIENCE_BOTTLE);
-
-        if (!holdingXP) {
-            restore(client);
-            return;
-        }
 
         if (!client.options.keyUse.isDown()) {
             restore(client);
             return;
         }
 
+        if (player.isUsingItem()) {
+            restore(client);
+            return;
+        }
+
+        boolean mainHandXP = player.getMainHandItem().is(Items.EXPERIENCE_BOTTLE);
+        boolean offhandXP = player.getOffhandItem().is(Items.EXPERIENCE_BOTTLE);
+
+        if (!mainHandXP && !offhandXP) {
+            restore(client);
+            return;
+        }
+
+        if (!mainHandXP && offhandXP) {
+            var mainItem = player.getMainHandItem();
+            if (!mainItem.isEmpty()) {
+                restore(client);
+                return;
+            }
+        }
+
         MinecraftAccessor accessor = (MinecraftAccessor) client;
         if (accessor.getRightClickDelay() > config.fastMendDelay) {
-            int jitter = java.util.concurrent.ThreadLocalRandom.current().nextInt(0, 2);
+            int jitter = ThreadLocalRandom.current().nextInt(0, 2);
             accessor.setRightClickDelay(config.fastMendDelay + jitter);
         }
         wasActive = true;
