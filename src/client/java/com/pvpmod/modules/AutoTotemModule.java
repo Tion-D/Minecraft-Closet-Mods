@@ -10,6 +10,7 @@ import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.effect.MobEffects;
 
 public class AutoTotemModule {
 
@@ -62,8 +63,16 @@ public class AutoTotemModule {
 
         if (state == State.IDLE) {
             if (lastOffhandWasTotem && !offhandIsTotem && player.getOffhandItem().isEmpty()) {
-                totemJustPopped = true;
-                playerOverrideCooldown = 0;
+                float health = player.getHealth();
+
+                if (health <= 3.0f || player.hasEffect(net.minecraft.world.effect.MobEffects.REGENERATION)) {
+                    totemJustPopped = true;
+                    playerOverrideCooldown = 0;
+                } else {
+                    totemJustPopped = true;
+                    playerOverrideCooldown = 0;
+                    tickDelay = 20 + java.util.concurrent.ThreadLocalRandom.current().nextInt(0, 41);
+                }
             }
         }
 
@@ -193,7 +202,7 @@ public class AutoTotemModule {
                 state = State.IDLE;
                 swapInFlight = true;
                 swapInFlightTimeout = 20;
-                tickDelay = tickDelay = config.autoTotemDelay;;
+                tickDelay = config.autoTotemDelay;
             }
 
             case INV_OPENED -> {
@@ -218,7 +227,7 @@ public class AutoTotemModule {
                 state = State.IDLE;
                 swapInFlight = true;
                 swapInFlightTimeout = 20;
-                tickDelay = tickDelay = config.autoTotemDelay;;
+                tickDelay = config.autoTotemDelay;
             }
 
             case RESTOCK_OPENED -> {
@@ -245,7 +254,7 @@ public class AutoTotemModule {
                 state = State.IDLE;
                 swapInFlight = true;
                 swapInFlightTimeout = 20;
-                tickDelay = tickDelay = config.autoTotemDelay;;
+                tickDelay = config.autoTotemDelay;
             }
         }
     }
@@ -261,7 +270,7 @@ public class AutoTotemModule {
             originalSlot = -1;
             state = State.IDLE;
             swapInFlight = true;
-            tickDelay = tickDelay = config.autoTotemDelay;;
+            tickDelay = config.autoTotemDelay;
             return;
         }
 

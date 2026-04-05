@@ -20,14 +20,13 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallba
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.network.protocol.game.ClientboundEntityEventPacket;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.network.chat.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.client.KeyMapping;
 import com.mojang.blaze3d.platform.InputConstants;
 import org.lwjgl.glfw.GLFW;
 import net.minecraft.client.Minecraft;
@@ -50,9 +49,6 @@ public class PvPModClient implements ClientModInitializer {
     private final LogoutSpotsModule logoutSpots = new LogoutSpotsModule();
     private final FastMendModule fastMend = new FastMendModule();
 
-    private static final String KEY_CATEGORY = "key.categories.pvpmod";
-    private static final String KEY_AIM_TOGGLE = "key.pvpmod.aim_toggle";
-    private boolean aimKeyHeld = false;
     private boolean aimKeyWasPressed = false;
 
     @Override

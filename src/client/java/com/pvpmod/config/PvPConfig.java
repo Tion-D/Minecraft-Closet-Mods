@@ -98,6 +98,8 @@ public class PvPConfig {
     // ===== Friends =====
     public List<String> friends = new ArrayList<>();
 
+    public boolean spoofClientBrand = true;
+
     public boolean isFriend(String name) {
         return friends.stream().anyMatch(f -> f.equalsIgnoreCase(name));
     }

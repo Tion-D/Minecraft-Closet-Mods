@@ -6,7 +6,8 @@
         "GuiMixin",
         "ScreenEffectRendererMixin",
         "BossHealthOverlayMixin",
-        "MinecraftAccessor"
+        "MinecraftAccessor",
+        "ChannelMixin"
     ],
     "injectors": {
         "defaultRequire": 1
