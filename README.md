@@ -12,7 +12,8 @@ Holy Closets
 - Auto Totem (legit)
 - criticals forked from (https://github.com/MeteorDevelopment/meteor-client)
 - esp
-
+- freecam
+- fast mend
 ### For 1.21.11
 
 
