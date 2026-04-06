@@ -10,6 +10,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import org.lwjgl.glfw.GLFW;
 
 public class PvPConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -52,6 +53,7 @@ public class PvPConfig {
     public int autoTotemDelay = 2;
     public boolean autoTotemElytra = true;
     public boolean autoTotemFall = true;
+    public boolean autoTotemAntiGhost = true;
 
     // ===== TriggerBot =====
    public boolean triggerBotEnabled = false;
@@ -91,6 +93,10 @@ public class PvPConfig {
     // ===== Fast Mend =====
     public boolean fastMendEnabled = true;
     public int fastMendDelay = 1;
+
+    // ===== FREE CAM =====
+    public int freecamKeyCode = GLFW.GLFW_KEY_N;
+    public double freecamSpeed = 0.5;
 
     // ===== Keybinds =====
     public int aimToggleKeyCode = 88; // KEY_X

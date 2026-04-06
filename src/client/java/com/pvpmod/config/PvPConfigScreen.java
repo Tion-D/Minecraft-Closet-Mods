@@ -16,7 +16,7 @@ public class PvPConfigScreen extends Screen {
     private int page = 0;
     private boolean listeningForKey = false;
     private Button keyButton = null;
-    private static final String[] PAGES = {"Aim", "TBot", "Crits", "Shield", "HitSel", "Totem", "ESP", "Traj", "Logout", "Render"};
+    private static final String[] PAGES = {"Aim", "TBot", "Crits", "Shield", "HitSel", "Totem", "ESP", "Traj", "Logout", "Render", "Freecam"};
 
     public PvPConfigScreen(Screen parent) {
         super(Component.literal("PvP Mod Settings"));
@@ -54,6 +54,8 @@ public class PvPConfigScreen extends Screen {
             case 7 -> initTrajectory(centerX, y, buttonWidth);
             case 8 -> initLogout(centerX, y, buttonWidth);
             case 9 -> initNoRender(centerX, y, buttonWidth);
+            case 10 -> initFreecam(centerX, y, buttonWidth);
+
         }
     }
 
@@ -298,6 +300,21 @@ public class PvPConfigScreen extends Screen {
                 })
                 .bounds(centerX - w / 2, y, w, 20)
                 .build());
+        y += 30;
+        addDoneButton(centerX, y);
+    }
+    private void initFreecam(int centerX, int y, int w) {
+        addRenderableWidget(Button.builder(
+                Component.literal("Toggle Key: " + getKeyName(config.freecamKeyCode)),
+                btn -> {
+                    listeningForKey = true;
+                    keyButton = btn;
+                    btn.setMessage(Component.literal("Toggle Key: §e> Press a key <"));
+                })
+                .bounds(centerX - w / 2, y, w, 20)
+                .build());
+        y += 24;
+        addSlider(centerX, y, w, "Speed", config.freecamSpeed, 0.1, 3.0, 2, v -> { config.freecamSpeed = v; config.save(); });
         y += 30;
         addDoneButton(centerX, y);
     }

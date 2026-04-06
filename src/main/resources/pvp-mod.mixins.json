@@ -7,7 +7,9 @@
         "ScreenEffectRendererMixin",
         "BossHealthOverlayMixin",
         "MinecraftAccessor",
-        "ChannelMixin"
+        "ChannelMixin",
+        "FreecamCameraMixin",
+        "FreecamMouseMixin"
     ],
     "injectors": {
         "defaultRequire": 1

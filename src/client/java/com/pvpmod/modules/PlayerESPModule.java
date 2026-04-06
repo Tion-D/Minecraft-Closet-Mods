@@ -52,7 +52,7 @@ public class PlayerESPModule {
                 x - hw, y, z - hw,
                 x + hw, y + player.getBbHeight(), z + hw,
                 color, config.espAlpha);
-                    }
+        }
 
         client.renderBuffers().bufferSource().endBatch();
 
@@ -76,6 +76,10 @@ public class PlayerESPModule {
             double dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
             float nametagScale = (float)(0.025 * Math.max(dist / 10.0, 1.0));
 
+            float health = player.getHealth() + player.getAbsorptionAmount();
+            float maxHealth = player.getMaxHealth();
+            float healthPct = Math.clamp(health / maxHealth, 0f, 1f);
+
             poseStack.pushPose();
             poseStack.translate(dx, dy + player.getBbHeight() + 0.3, dz);
             poseStack.mulPose(cameraRotation);
@@ -88,12 +92,27 @@ public class PlayerESPModule {
                 ? (0xFF << 24) | ((int)(config.espFriendR * 255) << 16) | ((int)(config.espFriendG * 255) << 8) | (int)(config.espFriendB * 255)
                 : (0xFF << 24) | ((int)(config.espEnemyR * 255) << 16) | ((int)(config.espEnemyG * 255) << 8) | (int)(config.espEnemyB * 255);
 
+            // Draw name
             font.drawInBatch(name, textX, 0, nameColor, false,
+                poseStack.last().pose(), consumers, Font.DisplayMode.SEE_THROUGH,
+                bgColor, 0xF000F0);
+
+            // Draw health text above name
+            String healthText = String.format("%.1f", health) + "❤";
+            int hpColor = getHealthColor(healthPct);
+            float healthX = -font.width(healthText) / 2f;
+            font.drawInBatch(healthText, healthX, -12f, hpColor, false,
                 poseStack.last().pose(), consumers, Font.DisplayMode.SEE_THROUGH,
                 bgColor, 0xF000F0);
 
             poseStack.popPose();
         }
+    }
+
+    private int getHealthColor(float pct) {
+        if (pct <= 0.333f) return 0xFFFF1919;
+        if (pct <= 0.666f) return 0xFFFF6919;
+        return 0xFF19FF19;
     }
 
     private double lerp(float delta, double old, double current) {

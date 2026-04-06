@@ -12,6 +12,7 @@ import com.pvpmod.modules.PlayerESPModule;
 import com.pvpmod.modules.TriggerBotModule;
 import com.pvpmod.modules.LogoutSpotsModule;
 import com.pvpmod.modules.FastMendModule;
+import com.pvpmod.modules.FreecamModule;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
@@ -48,6 +49,7 @@ public class PvPModClient implements ClientModInitializer {
     private final TriggerBotModule triggerBot = new TriggerBotModule();
     private final LogoutSpotsModule logoutSpots = new LogoutSpotsModule();
     private final FastMendModule fastMend = new FastMendModule();
+    public static final FreecamModule freecam = new FreecamModule();
 
     private boolean aimKeyWasPressed = false;
 
@@ -278,12 +280,13 @@ public class PvPModClient implements ClientModInitializer {
 
         ClientTickEvents.START_CLIENT_TICK.register(client -> {
             hitSelect.onTickStart(client);
+            freecam.onTick(client);
         });
 
        ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.screen == null && client.player != null) {
                 int key = PvPConfig.getInstance().aimToggleKeyCode;
-                boolean pressed = InputConstants.isKeyDown(client.getWindow(), key);
+                boolean pressed = GLFW.glfwGetKey(GLFW.glfwGetCurrentContext(), key) == GLFW.GLFW_PRESS;
                 if (pressed && !aimKeyWasPressed) {
                     PvPConfig config = PvPConfig.getInstance();
                     config.aimAssistEnabled = !config.aimAssistEnabled;
